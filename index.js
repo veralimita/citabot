@@ -143,7 +143,10 @@ bot.onText(/\/help/, (msg) => {
 const check = async (config) => {
     for (let chatId in config) {
         try {
-            const browser = await puppeteer.launch();
+            const browser = await puppeteer.launch({
+                args: ['--no-sandbox'],
+                headless: true,
+            });
             const page = await browser.newPage();
 
             // Navigate to the web page
