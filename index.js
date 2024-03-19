@@ -11,6 +11,8 @@ const adminChatId = 138196779;
 
 const puppeteer = require('puppeteer');
 let registeringIsEnabled = false;
+let savingOfHtmlIsEnabled = true;
+let taskIsRunning = true;
 
 const rl = readline.createInterface({
     input: process.stdin,
@@ -43,7 +45,7 @@ const getPromiseWithUserInput = (question) => {
     });
 }
 
-function sendImageAndWaitForInput(chatId, imageSource, caption, code) {
+function sendImageAndWaitForInput(chatId, imageSource, caption) {
     return new Promise((resolve, reject) => {
         let userInputReceived = false;
 
@@ -55,7 +57,7 @@ function sendImageAndWaitForInput(chatId, imageSource, caption, code) {
         }, 30000);
 
         bot.sendPhoto(chatId, imageSource, {
-            caption: caption + ' recognized code: ' + code,
+            caption,
         }).then(() => {
             bot.once('message', (responseMsg) => {
                 const userInput = responseMsg.text;
@@ -105,6 +107,20 @@ bot.onText(/\/disableRegistering/, (msg) => {
     }
 });
 
+bot.onText(/\/enableSavingOfHtml/, (msg) => {
+    if (msg.chat.id === adminChatId) {
+        savingOfHtmlIsEnabled = true;
+        bot.sendMessage(msg.chat.id, 'Saving of html is enabled').catch(console.error);
+    }
+});
+
+bot.onText(/\/disableSavingOfHtml/, (msg) => {
+    if (msg.chat.id === adminChatId) {
+        savingOfHtmlIsEnabled = false;
+        bot.sendMessage(msg.chat.id, 'Saving of html is disabled').catch(console.error);
+    }
+});
+
 bot.onText(/\/list/, (msg) => {
     if (msg.chat.id === adminChatId) {
         const chatIds = Object.keys(_config);
@@ -133,10 +149,14 @@ bot.onText(/\/help/, (msg) => {
     bot.sendMessage(msg.chat.id, `/check - check url
 /register <url> - register url
 /remove - remove url for current chat
-/enableRegistering - enable registering (only for admin)
+/enableRegistering - enable registering (only for admin) - now is enabled: ${registeringIsEnabled}
 /disableRegistering - disable registering (only for admin)
+/enableSavingOfHtml - enable saving of html (only for admin) - now is enabled: ${savingOfHtmlIsEnabled}
+/disableSavingOfHtml - disable saving of html (only for admin)
 /list - list all registered urls (only for admin)
 /remove <chatId> - remove url for chatId (only for admin)
+/start - start the bot (only for admin) - now is running: ${taskIsRunning}
+/stop - stop the bot (only for admin)
 /help - show help`).catch(console.error);
 });
 
@@ -167,8 +187,8 @@ const check = async (config) => {
                     path: 'screenshot.png',
                     clip: boundingBox,
                 });
-                const recognizedCode = await recognizeTextFromImage('./screenshot.png');
-                const userInput = await sendImageAndWaitForInput(chatId, './screenshot.png', 'Please enter the text in the image:', recognizedCode);
+                // const recognizedCode = await recognizeTextFromImage('./screenshot.png');
+                const userInput = await sendImageAndWaitForInput(chatId, './screenshot.png', 'Please enter the text in the image');
                 rl.close();
 
                 await page.type('input#ctl00_MainContent_txtCode', userInput);
@@ -178,6 +198,10 @@ const check = async (config) => {
                 await page.click('input#ctl00_MainContent_ButtonB');
                 await page.waitForSelector('input#ctl00_MainContent_Button1');
                 await page.screenshot({path: 'calendar.png'});
+                const html = await page.content();
+                    if (savingOfHtmlIsEnabled && !html.includes('Извините, но в настоящий момент на интересующее Вас консульское действие в системе предварительной записи нет свободного времени.')) {
+                    fs.writeFileSync('calendar.html', html);
+                }
                 await browser.close();
 
                 await bot.sendPhoto(chatId, './calendar.png', {
@@ -190,4 +214,24 @@ const check = async (config) => {
     }
 };
 
-cron.schedule('0 * * * *', ()=>{check(_config)});
+const task = cron.schedule('15 9-20 * * *', ()=>{
+    check(_config);
+});
+
+bot.onText(/\/stop/, (msg) => {
+    if (msg.chat.id === adminChatId) {
+        bot.sendMessage(msg.chat.id, 'Stopping the bot...').then(() => {
+            task.stop();
+            taskIsRunning = false;
+        }).catch(console.error);
+    }
+});
+
+bot.onText(/\/start/, (msg) => {
+    if (msg.chat.id === adminChatId) {
+        bot.sendMessage(msg.chat.id, 'Starting the bot...').then(() => {
+            task.start();
+            taskIsRunning = true;
+        }).catch(console.error);
+    }
+});
