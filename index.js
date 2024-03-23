@@ -162,11 +162,11 @@ bot.onText(/\/help/, (msg) => {
 
 const check = async (config) => {
     for (let chatId in config) {
+        const browser = await puppeteer.launch({
+            args: ['--no-sandbox'],
+            headless: true,
+        });
         try {
-            const browser = await puppeteer.launch({
-                args: ['--no-sandbox'],
-                headless: true,
-            });
             const page = await browser.newPage();
 
             // Navigate to the web page
@@ -202,7 +202,6 @@ const check = async (config) => {
                     if (savingOfHtmlIsEnabled && !html.includes('Извините, но в настоящий момент на интересующее Вас консульское действие в системе предварительной записи нет свободного времени.')) {
                     fs.writeFileSync('calendar.html', html);
                 }
-                await browser.close();
 
                 await bot.sendPhoto(chatId, './calendar.png', {
                     caption: `Calendar for ${url}`,
@@ -210,6 +209,8 @@ const check = async (config) => {
             }
         } catch (e) {
             bot.sendMessage(chatId, e.toString()).catch(console.error);
+        } finally {
+            await browser.close();
         }
     }
 };
