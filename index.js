@@ -163,17 +163,12 @@ bot.onText(/\/help/, (msg) => {
 const check = async (config) => {
     for (let chatId in config) {
         const url = config[chatId];
-        await bot.sendMessage(chatId, `Checking url: ${url}`)
         const browser = await puppeteer.launch({
             args: ['--no-sandbox'],
             headless: true,
         });
         const page = await browser.newPage();
         await page.goto(url);
-        await page.screenshot({path: 'open-page.png'});
-        await bot.sendPhoto(chatId, './open-page.png', {
-            caption: `Page for ${url}`,
-        })
         try {
             // Wait for the element with the specific selector to be visible
             const selector = '.inp img';
