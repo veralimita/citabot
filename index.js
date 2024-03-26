@@ -162,21 +162,18 @@ bot.onText(/\/help/, (msg) => {
 
 const check = async (config) => {
     for (let chatId in config) {
+        const url = config[chatId];
         const browser = await puppeteer.launch({
             args: ['--no-sandbox'],
             headless: true,
         });
         const page = await browser.newPage();
-
+        await page.goto(url);
+        await page.screenshot({path: 'open-page.png'});
         try {
-            // Navigate to the web page
-            const url = config[chatId];
-            await page.goto(url);
-
             // Wait for the element with the specific selector to be visible
             const selector = '.inp img';
             await page.waitForSelector(selector);
-
             // Get the bounding box of the element
             const element = await page.$(selector);
             const boundingBox = await element.boundingBox();
@@ -210,7 +207,7 @@ const check = async (config) => {
         } catch (e) {
             await page.screenshot({path: 'error.png'});
             await bot.sendPhoto(chatId, './error.png', {
-                caption: `Error for ${url}, message: ${e.toString()}`,
+                caption: `Error for ${url}`,
             })
         } finally {
             await browser.close();
