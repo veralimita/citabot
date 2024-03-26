@@ -163,6 +163,7 @@ bot.onText(/\/help/, (msg) => {
 const check = async (config) => {
     for (let chatId in config) {
         const url = config[chatId];
+        await bot.sendMessage(chatId, `Checking url: ${url}`)
         const browser = await puppeteer.launch({
             args: ['--no-sandbox'],
             headless: true,
