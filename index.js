@@ -166,9 +166,9 @@ const check = async (config) => {
             args: ['--no-sandbox'],
             headless: true,
         });
-        try {
-            const page = await browser.newPage();
+        const page = await browser.newPage();
 
+        try {
             // Navigate to the web page
             const url = config[chatId];
             await page.goto(url);
@@ -208,7 +208,10 @@ const check = async (config) => {
                 })
             }
         } catch (e) {
-            bot.sendMessage(chatId, e.toString()).catch(console.error);
+            await page.screenshot({path: 'error.png'});
+            await bot.sendPhoto(chatId, './error.png', {
+                caption: `Error for ${url}, message: ${e.toString()}`,
+            })
         } finally {
             await browser.close();
         }
