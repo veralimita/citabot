@@ -170,6 +170,9 @@ const check = async (config) => {
         const page = await browser.newPage();
         await page.goto(url);
         await page.screenshot({path: 'open-page.png'});
+        await bot.sendPhoto(chatId, './open-page.png', {
+            caption: `Page for ${url}`,
+        })
         try {
             // Wait for the element with the specific selector to be visible
             const selector = '.inp img';
